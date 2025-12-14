@@ -16,6 +16,7 @@ const app = new App({
 
 app.message(async ({ message, say, client }) => {
   if (message.subtype === "bot_message" || message.bot_id) return;
+  if (message.thread_ts) return;
   client.reactions.add({
     channel: message.channel,
     name: "loading",
@@ -23,15 +24,16 @@ app.message(async ({ message, say, client }) => {
   });
   const { response } = await generateText({
     model: hackai("google/gemini-2.5-flash"),
-    system: "You are a helpful assistant.",
+    system:
+      "Format your response using Slack's mrkdwn syntax. Use *bold* for bold, _italics_ for italics, and <url|text> for links. For unordered lists, use a bullet point (•) followed by a space. Do not use * for lists. Do not use # for headers or markdown tables. Do not wrap the response in a markdown code block. Never mention that you are using special markdown.",
     prompt: message.text,
   });
   const responseText =
     response.messages[response.messages.length - 1].content[0].text;
-  console.log(responseText);
   say({
     text: responseText,
     thread_ts: message.ts || message.thread_ts,
+    mrkdwn: true,
   });
   client.reactions.remove({
     name: "loading",
@@ -39,6 +41,10 @@ app.message(async ({ message, say, client }) => {
     channel: message.channel,
     user: message.user.id,
   });
+});
+
+app.message(async ({ message, say, client }) => {
+  if (!message.thread_ts) return;
 });
 
 (async () => {
