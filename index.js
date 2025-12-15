@@ -14,6 +14,7 @@ const app = new App({
   appToken: process.env.SLACK_APP_TOKEN,
 });
 
+// phtotos
 app.command("/photo", async ({ ack, command, client }) => {
   await ack();
 
@@ -77,6 +78,7 @@ app.command("/photo", async ({ ack, command, client }) => {
   }
 });
 
+// Normal Messages
 app.message(async ({ message, say, client }) => {
   if (message.subtype === "bot_message" || message.bot_id) return;
   if (message.thread_ts) return;
@@ -107,6 +109,7 @@ app.message(async ({ message, say, client }) => {
   });
 });
 
+// Threads
 app.message(async ({ message, say, client }) => {
   if (!message.thread_ts) return;
   if (message.text && message.text.startsWith("/")) return;
