@@ -1,6 +1,6 @@
 import { App } from "@slack/bolt";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { generateText } from "ai";
+import { generateText, experimental_generateImage as generateImage } from "ai";
 import "dotenv/config";
 
 const hackai = createOpenRouter({
@@ -14,6 +14,66 @@ const app = new App({
   appToken: process.env.SLACK_APP_TOKEN,
 });
 
+app.command("/photo", async ({ ack, command, client }) => {
+  await ack();
+
+  const statusMessage = await client.chat.postMessage({
+    channel: command.channel_id,
+    text: "Generaing image...",
+  });
+
+  try {
+    const response = await fetch(
+      "https://ai.hackclub.com/proxy/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.HACK_CLUB_AI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-pro-image-preview",
+          messages: [
+            {
+              role: "user",
+              content: command.text,
+            },
+          ],
+          modalities: ["image", "text"],
+          image_config: {
+            aspect_ratio: "1:1",
+          },
+        }),
+      }
+    );
+
+    const data = await response.json();
+    const imageBase64 =
+      data.choices[0].message.images[0].image_url.url.split(",")[1];
+    const imageBuffer = Buffer.from(imageBase64, "base64");
+
+    await client.files.uploadV2({
+      channel_id: command.channel_id,
+      file: imageBuffer,
+      filename: "generated_image.png",
+      title: command.text,
+      initial_comment: `Sure, here is your image for ${command.text}`,
+    });
+    await client.chat.delete({
+      channel: command.channel_id,
+      ts: statusMessage.ts,
+    });
+  } catch (error) {
+    console.error("Image Gen Error:", error);
+
+    await client.chat.update({
+      channel: command.channel_id,
+      ts: statusMessage.ts,
+      text: "Failed to generate image. Please try again.",
+    });
+  }
+});
+
 app.message(async ({ message, say, client }) => {
   if (message.subtype === "bot_message" || message.bot_id) return;
   if (message.thread_ts) return;
@@ -25,7 +85,7 @@ app.message(async ({ message, say, client }) => {
   const { response } = await generateText({
     model: hackai("google/gemini-2.5-flash"),
     system:
-      "Format your response using Slack's mrkdwn syntax. Use *bold* for bold, _italics_ for italics, and <url|text> for links. For unordered lists, use a bullet point (•) followed by a space. Do not use * for lists. Do not use # for headers or markdown tables. Do not wrap the response in a markdown code block. Never mention that you are using special markdown.",
+      "Format your response using Slack's mrkdwn syntax. Use *bold* for bold, _italics_ for italics, and <url|text> for links. For unordered lists, use a bullet point *. Do not use # for headers or markdown tables. Do not wrap the response in a markdown code block. Never mention that you are using special markdown.",
     prompt: message.text,
   });
   const responseText =
