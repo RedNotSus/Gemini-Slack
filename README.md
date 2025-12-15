@@ -1,6 +1,6 @@
 # Gemini-Slack
 
-A slack bot that uses the hack club api to let you talk with gemini through slack directly.
+A slack bot that uses the hack club api to let you talk with gemini through slack directly, using conversation context and image generation.
 
 Supports
 
@@ -29,3 +29,14 @@ HACK_CLUB_AI_API_KEY=
 
 - "/photo [prompt]" - Generates an AI photo based off of the prompt provided
 - Message the bot directly or mention it in a channel to chat with Gemini AI
+
+## Live Demo
+
+![demo](https://hackclub.enterprise.slack.com/archives/C0A0XPYSEEN)
+
+## Roadmap
+
+- PDF/Document Support
+- Model Switching
+- Self supplied api keys
+- Better error handling and logging
