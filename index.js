@@ -19,7 +19,7 @@ app.command("/photo", async ({ ack, command, client }) => {
 
   const statusMessage = await client.chat.postMessage({
     channel: command.channel_id,
-    text: `:loading2: Generating image with prompt: ${command.text}`,
+    text: `:loading2:  Generating image with prompt: ${command.text}`,
   });
 
   try {
