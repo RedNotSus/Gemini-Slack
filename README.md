@@ -8,6 +8,7 @@ Supports
 - DM's
 - Photo Generation
 - Conversation Contex
+- Image Vision Support
 
 ## Setup
 

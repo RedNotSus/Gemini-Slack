@@ -14,7 +14,15 @@ const app = new App({
   appToken: process.env.SLACK_APP_TOKEN,
 });
 
-// phtotos
+async function downloadSlackFile(url) {
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}` },
+  });
+  if (!response.ok) throw new Error(response.statusText);
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer).toString("base64");
+}
+
 app.command("/photo", async ({ ack, command, client }) => {
   await ack();
 
@@ -78,38 +86,68 @@ app.command("/photo", async ({ ack, command, client }) => {
   }
 });
 
-// Normal Messages
 app.message(async ({ message, say, client }) => {
   if (message.subtype === "bot_message" || message.bot_id) return;
   if (message.thread_ts) return;
-  if (!message.text) return;
-  client.reactions.add({
+  if (!message.text && !message.files) return;
+
+  await client.reactions.add({
     channel: message.channel,
     name: "loading",
     timestamp: message.ts,
   });
-  const { response } = await generateText({
-    model: hackai("google/gemini-2.5-flash"),
-    system:
-      "Format your response using Slack's mrkdwn syntax. Use *bold* for bold, _italics_ for italics, and <url|text> for links. For unordered lists, use a bullet point *. Do not use # for headers or markdown tables. Do not wrap the response in a markdown code block. Never mention that you are using special markdown.",
-    prompt: message.text,
-  });
-  const responseText =
-    response.messages[response.messages.length - 1].content[0].text;
-  say({
-    text: responseText,
-    thread_ts: message.ts || message.thread_ts,
-    mrkdwn: true,
-  });
-  client.reactions.remove({
-    name: "loading",
-    timestamp: message.ts,
-    channel: message.channel,
-    user: message.user.id,
-  });
+
+  try {
+    const messagesContent = [];
+
+    if (message.text) {
+      messagesContent.push({ type: "text", text: message.text });
+    } else {
+      messagesContent.push({ type: "text", text: " " });
+    }
+
+    if (message.files) {
+      const file = message.files[0];
+      if (file.url_private && file.mimetype.startsWith("image/")) {
+        const base64Data = await downloadSlackFile(file.url_private);
+        messagesContent.push({
+          type: "image",
+          image: base64Data,
+        });
+      }
+    }
+
+    const { text } = await generateText({
+      model: hackai("google/gemini-2.5-flash"),
+      system:
+        "Format your response using Slack's mrkdwn syntax. Use *bold* for bold, _italics_ for italics, and <url|text> for links. For unordered lists, use a bullet point *. Do not use # for headers or markdown tables. Do not wrap the response in a markdown code block. Never mention that you are using special markdown.",
+      messages: [
+        {
+          role: "user",
+          content: messagesContent,
+        },
+      ],
+    });
+
+    await say({
+      text: text,
+      thread_ts: message.ts || message.thread_ts,
+      mrkdwn: true,
+    });
+  } catch (error) {
+    console.error(error);
+  } finally {
+    try {
+      client.reactions.remove({
+        name: "loading",
+        timestamp: message.ts,
+        channel: message.channel,
+        user: message.user.id,
+      });
+    } catch (e) {}
+  }
 });
 
-// Threads
 app.message(async ({ message, say, client }) => {
   if (!message.thread_ts) return;
   if (message.text && message.text.startsWith("/")) return;
