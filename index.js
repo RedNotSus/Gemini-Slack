@@ -134,7 +134,7 @@ app.message(async ({ message, say, client }) => {
     }
 
     const { text } = await generateText({
-      model: hackai("google/gemini-2.5-flash"),
+      model: hackai("google/gemini-3-flash-preview"),
       system:
         "Format your response using Slack's mrkdwn syntax. Use *bold* for bold, _italics_ for italics, and <url|text> for links. For unordered lists, use a bullet point *. Do not use # for headers or markdown tables. Do not wrap the response in a markdown code block. Never mention that you are using special markdown.",
       messages: [
@@ -188,7 +188,7 @@ app.message(async ({ message, say, client }) => {
       .filter((msg) => msg.content.trim() !== "");
 
     const { text } = await generateText({
-      model: hackai("google/gemini-2.5-flash"),
+      model: hackai("google/gemini-3-flash-preview"),
       system:
         "Format your response using Slack's mrkdwn syntax. Use *bold* for bold, _italics_ for italics, and <url|text> for links. For unordered lists, use a bullet point *. Do not use # for headers or markdown tables. Do not wrap the response in a markdown code block. Never mention that you are using special markdown.",
       messages: formattedHistory,
