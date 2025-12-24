@@ -115,21 +115,21 @@ app.message(async ({ message, say, client }) => {
           image: base64Data,
         });
       }
-    } else if (
-      message.text &&
-      message.text.match(/https?:\/\/\S+\.(png|jpg|jpeg|gif)/gi)
-    ) {
-      const imageUrls = message.text.match(
-        /https?:\/\/\S+\.(png|jpg|jpeg|gif)/gi
-      );
-      for (const imageUrl of imageUrls) {
-        const response = await fetch(imageUrl);
-        const arrayBuffer = await response.arrayBuffer();
-        const base64Data = Buffer.from(arrayBuffer).toString("base64");
-        messagesContent.push({
-          type: "image",
-          image: base64Data,
-        });
+    } else {
+      const imageUrls = message.text
+        ? message.text.match(/https?:\/\/\S+\.(png|jpg|jpeg|gif)/gi)
+        : null;
+
+      if (imageUrls) {
+        for (const imageUrl of imageUrls) {
+          const response = await fetch(imageUrl);
+          const arrayBuffer = await response.arrayBuffer();
+          const base64Data = Buffer.from(arrayBuffer).toString("base64");
+          messagesContent.push({
+            type: "image",
+            image: base64Data,
+          });
+        }
       }
     }
 
