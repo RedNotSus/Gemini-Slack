@@ -122,15 +122,26 @@ app.message(async ({ message, say, client }) => {
       const imageUrls = message.text.match(
         /https?:\/\/\S+\.(png|jpg|jpeg|gif)/gi
       );
-      for (const imageUrl of imageUrls) {
+      const imagePromises = imageUrls.map(async (imageUrl) => {
         const response = await fetch(imageUrl);
+        if (!response.ok)
+          throw new Error(
+            `Failed to fetch ${imageUrl}: ${response.status} ${response.statusText}`
+          );
         const arrayBuffer = await response.arrayBuffer();
         const base64Data = Buffer.from(arrayBuffer).toString("base64");
-        messagesContent.push({
+        return {
           type: "image",
           image: base64Data,
-        });
-      }
+        };
+      });
+
+      const results = await Promise.allSettled(imagePromises);
+      const successfulImages = results
+        .filter((result) => result.status === "fulfilled")
+        .map((result) => result.value);
+
+      messagesContent.push(...successfulImages);
     }
 
     const { text } = await generateText({
