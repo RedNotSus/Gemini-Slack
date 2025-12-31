@@ -3,6 +3,8 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, experimental_generateImage as generateImage } from "ai";
 import "dotenv/config";
 
+const ALLOWED_CHANNEL = process.env.ALLOWED_CHANNEL_ID || "C0A0XPYSEEN";
+
 const hackai = createOpenRouter({
   apiKey: process.env.HACK_CLUB_AI_API_KEY,
   baseUrl: "https://ai.hackclub.com/proxy/v1",
@@ -26,6 +28,16 @@ async function downloadSlackFile(url) {
 app.command("/photo", async ({ ack, command, client }) => {
   await ack();
 
+  if (command.channel_id !== ALLOWED_CHANNEL) {
+    try {
+      await client.chat.postEphemeral({
+        channel: command.channel_id,
+        user: command.user_id,
+        text: `This command only works in <#${ALLOWED_CHANNEL}>.`,
+      });
+    } catch (e) {}
+    return;
+  }
   const statusMessage = await client.chat.postMessage({
     channel: command.channel_id,
     text: `:loading2:  Generating image with prompt: ${command.text}`,
@@ -88,6 +100,7 @@ app.command("/photo", async ({ ack, command, client }) => {
 
 app.message(async ({ message, say, client }) => {
   if (message.subtype === "bot_message" || message.bot_id) return;
+  if (message.channel !== ALLOWED_CHANNEL) return;
   if (message.thread_ts) return;
   if (!message.text && !message.files) return;
 
@@ -165,6 +178,7 @@ app.message(async ({ message, say, client }) => {
 });
 
 app.message(async ({ message, say, client }) => {
+  if (message.channel !== ALLOWED_CHANNEL) return;
   if (!message.thread_ts) return;
   if (message.text && message.text.startsWith("/")) return;
 
