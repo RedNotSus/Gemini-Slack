@@ -192,9 +192,23 @@ app.message(async ({ message, say, client }) => {
     const threadHistory = await client.conversations.replies({
       channel: message.channel,
       ts: message.thread_ts,
+      limit: 100, // Limit to recent messages for performance
     });
 
-    const formattedHistory = (threadHistory.messages || [])
+    const allMessages = threadHistory.messages || [];
+    const CONTEXT_LIMIT = 20;
+    let messagesToProcess = allMessages;
+
+    // If we have more than (Parent + Context Limit), we need to truncate
+    if (allMessages.length > CONTEXT_LIMIT + 1) {
+      // Keep the first message (Parent) and the last CONTEXT_LIMIT messages
+      messagesToProcess = [
+        allMessages[0],
+        ...allMessages.slice(-CONTEXT_LIMIT),
+      ];
+    }
+
+    const formattedHistory = messagesToProcess
       .map((msg) => ({
         role: msg.bot_id ? "assistant" : "user",
         content: msg.text || "",
